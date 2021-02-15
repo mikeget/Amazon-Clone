@@ -1,6 +1,6 @@
 import React from 'react'
 import "./Product.css"
-// import image from "./image.PNG"
+
 
 
     function Product({id, title, image, price, rating}) {
