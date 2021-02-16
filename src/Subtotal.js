@@ -5,7 +5,7 @@ import { useStateValue } from './StateProvider';
 
 
 function Subtotal() {
-    const [{ basket }, dispatch] = useStateValue();
+    const [{basket}, dispatch] = useStateValue();
     const getBasketTotal = (basket) => 
         basket?.reduce((amount, item) => item.price + amount, 0);
     
@@ -18,7 +18,8 @@ function Subtotal() {
                 Subtotal({basket.length} items):<strong>{value}</strong>
               </p>
               <small className="subtotal__gift">
-                <input type="checkbox" /> This order contains a gift
+                <input type="checkbox" /> 
+                This order contains a gift
               </small>
             </div>
           )}
