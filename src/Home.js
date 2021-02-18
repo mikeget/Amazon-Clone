@@ -23,7 +23,7 @@ import Product from "./Product";
                       id="102"
                       title="Fender Squier Short Scale 24 Stratocaster Transparent Red Learn-to-Play Bundle with Frontman10G Amp CableTunerStrap Picks Fender Play Online Lessons and Austin Bazaar Instructional DVD"
                       price={299.99}
-                      rating={4.5}
+                      rating={4}
                       image="https://images-na.ssl-images-amazon.com/images/I/71y3xVeQpRL._AC_SL1498_.jpg"
                     />
                   </div>
