@@ -2,10 +2,7 @@ import axios from "axios";
 
 
 const instance = axios.create({
-    baseURL: "",
-
-
-
+  baseURL: "http://localhost:5001/michael--clone/us-central1/api",
 });
 
 

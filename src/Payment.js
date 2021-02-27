@@ -1,16 +1,19 @@
-import React, { useState }from 'react'
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { Link, useHistory } from "react-router-dom";
 import CheckoutProduct from './CheckoutProduct';
-import "./Payment.css"
+import "./Payment.css";
 import { useStateValue } from './StateProvider';
 import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import CurrencyFormat from 'react-currency-format';
 import axios from "./axios"
+import { db } from "./firebase";
 
 
 function Payment() {
 
     const [{ basket, user }, dispatch] = useStateValue();
+
+    const history = useHistory();
 
     const getBasketTotal = (basket) =>
     basket?.reduce((amount, item) => item.price + amount, 0);
@@ -21,7 +24,7 @@ function Payment() {
     const [error, setError] = useState(null);
     const [disabled, setDisabled] = useState(true);
 
-    const [Succeeded, setSucceeded] = useState(false);
+    const [succeeded, setSucceeded] = useState(false);
     const [processing, setProcessing] = useState("");
 
     const [clientSecret, setClientSecret] = useState(true);
@@ -38,87 +41,108 @@ function Payment() {
         getClientSecret();
     }, [basket]);
 
-    const handleSubmit = async(event) => {
-        event.preventDefault();
-        setProcessing(true);
+    console.log("The SECRET IS >>>", clientSecret);
 
-        const payload = await stripe.confirmCardPayment(clientSecret, {
-                payment_menthod: {
-                    card: elements.getElement(CardElement),
-            
-                },
-            })
+   const handleSubmit = async (event) => {
+     event.preventDefault();
+     setProcessing(true);
 
-    };
-    
+     const payload = await stripe
+       .confirmCardPayment(clientSecret, {
+         payment_method: {
+           card: elements.getElement(CardElement),
+         },
+       })
+       .then(({ paymentIntent }) => {
+         // paymentIntent = payment confirmation
 
-    const handleChange = (event) => {
-        setDisabled(event.empty);
-        setError(event.error ? event.error.message : '');
-    };
+         db.collection("users")
+           .doc(user?.uid)
+           .collection("orders")
+           .doc(paymentIntent.id)
+           .set({
+             basket: basket,
+             amount: paymentIntent.amount,
+             created: paymentIntent.created,
+           });
 
-        return (
-        <div className="payment">
-            <div className="payment__container">
-            <h1>
-                Checkout (<Link to="/checkout">{basket?.length} items</Link>)
-            </h1>
-            <div className="payment__section">
-                <div className="payment__title">
-                <h3>Delivery Address</h3>
-                </div>
+         setSucceeded(true);
+         setError(null);
+         setProcessing(false);
 
-                <div className="payment__address">
-                <p>{user?.email}</p>
-                <p> 123 Addisababa st</p>
-                <p>Alexandria, VA</p>
-                </div>
-            </div>
-            <div className="payment__section">
-                <div className="payment__title">
-                <h3>Review items and delivery</h3>
-                </div>
+         dispatch({
+           type: "EMPTY_BASKET",
+         });
 
-                <div className="payment__items">
-                {basket.map((item) => (
-                    <CheckoutProduct
-                    id={item.id}
-                    title={item.title}
-                    image={item.image}
-                    price={item.price}
-                    rating={item.rating}
-                    />
-                ))}
-                </div>
-            </div>
-            <div className="payment__section">
-                <div className="payment__title">
-                <h3>Payment Method</h3>
+         history.replace("/orders");
+       });
+   };
+
+
+        const handleChange = (event) => {
+            setDisabled(event.empty);
+            setError(event.error ? event.error.message : "");
+        };
+
+                return (
+                <div className="payment">
+                    <div className="payment__container">
+                    <h1>
+                        Checkout (<Link to="/checkout">{basket?.length} items</Link>)
+                    </h1>
+                    <div className="payment__section">
+                        <div className="payment__title">
+                        <h3>Delivery Address</h3>
+                        </div>
+                        <div className="payment__address">
+                        <p>{user?.email}</p>
+                        <p>123 Addisababa</p>
+                        <p>Alexandria, VA</p>
+                        </div>
+                    </div>
+                    <div className="payment__section">
+                        <div className="payment__title">
+                        <h3>Review items and delivery</h3>
+                        </div>
+                        <div className="payment__items">
+                        {basket.map((item) => (
+                            <CheckoutProduct
+                            id={item.id}
+                            title={item.title}
+                            image={item.image}
+                            price={item.price}
+                            rating={item.rating}
+                            />
+                        ))}
+                        </div>
+                    </div>
+                    <div className="payment__section">
+                        <div className="payment__title">
+                        <h3>Payment Method</h3>
                         </div>
                         <div className="payment__details">
-                            <form onSubmit={handleSubmit}>
-                                <CardElement onChange={handleChange}/>
-                                <div className="payment__priceContainer">
-                                    <CurrencyFormat
-                                        renderText={(value) => <h3>Order Total: {value}</h3>}
-                                        decimalScale={2}
-                                        value={getBasketTotal(basket)}
-                                        displayType={"text"}
-                                        thousandSeparator={true}
-                                        prefix={"$"}
-                                    />
-                                    <button disabled={processing || disabled || Succeeded}>
-                                        <span>{processing ? <p>processing</p> : "Buy Now"}</span>
-                                    </button>
-                                    
-                                </div>
-                                {error && <div>{error}</div>}
-                            </form>
+                        <form onSubmit={handleSubmit}>
+                            <CardElement onChange={handleChange} />
+                            <div className="payment__priceContainer">
+                            <CurrencyFormat
+                                renderText={(value) => <h3>Order Total: {value}</h3>}
+                                decimalScale={2}
+                                value={getBasketTotal(basket)}
+                                displayType={"text"}
+                                thousandSeparator={true}
+                                prefix={"$"}
+                            />
+                            <button disabled={processing || disabled || succeeded}>
+                                <span>{processing ? <p>processing</p> : "Buy Now"}</span>
+                            </button>
+                            </div>
+                            {error && <div>{error}</div>}
+                        </form>
                         </div>
-            </div>
-            </div>
-        </div>
-        );
-    }
+                    </div>
+                    </div>
+                </div>
+                );
+            }
 
 export default Payment
